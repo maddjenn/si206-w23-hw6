@@ -5,7 +5,7 @@ import os
 
 ###########################################
 # Your name: Madison Jenningw             #
-# Who you worked with:                    #
+# Who you worked with:       no one             #
 ###########################################
 
 def load_json(filename):
