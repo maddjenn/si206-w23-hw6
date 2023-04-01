@@ -4,7 +4,7 @@ import unittest
 import os
 
 ###########################################
-# Your name:                              #
+# Your name: Madison Jenningw             #
 # Who you worked with:                    #
 ###########################################
 
@@ -23,8 +23,13 @@ def load_json(filename):
         if the cache exists, a dict with loaded data
         if the cache does not exist, an empty dict
     '''
+    try:
+        with open(filename, 'r') as file:
+            data = json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        data = {}
+    return data
 
-    pass
 
 def write_json(filename, dict):
     '''
@@ -43,8 +48,8 @@ def write_json(filename, dict):
     None
         does not return anything
     '''  
-
-    pass
+    with open(filename, 'w') as file:
+        json.dump(data, file)
 
 def get_swapi_info(url, params=None):
     '''
@@ -63,7 +68,13 @@ def get_swapi_info(url, params=None):
     dict: dictionary representation of the decoded JSON.
     '''
 
-    pass
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.HTTPError as error:
+        print("Exception!", error)
+        return None
 
 def cache_all_pages(people_url, filename):
     '''
@@ -79,8 +90,29 @@ def cache_all_pages(people_url, filename):
     filename(str): the name of the file to write a cache to
         
     '''
-
-    pass
+    cache = load_json(filename)
+    page = 1
+    
+    while people_url:
+        if str(page) in cache:
+            print(f"Page {page} already in cache")
+            page += 1
+            people_url = cache[str(page)]['next']
+            continue
+        
+        print(f"Fetching page {page}...")
+        result = get_swapi_info(people_url)
+        
+        if result is None:
+            print("Exception! Unable to get data")
+            return
+        
+        cache[str(page)] = result
+        write_json(filename, cache)
+        print(f"Page {page} written to cache")
+        page += 1
+        people_url = result['next']
+    
 
 def get_starships(filename):
     '''
@@ -96,8 +128,20 @@ def get_starships(filename):
     dict: dictionary with the character's name as a key and a list of the name their 
     starships as the value
     '''
+    cached_data = load_json(filename)   
+    starship_dict = {}   
+    for page in cached_data:        
+        for character in cached_data[page]['results']:            
+            if len(character['starships']) > 0:                
+                character_name = character['name']
+                starship_names = []   
+                for starship_url in character['starships']:                  
+                    starship_data = get_swapi_info(starship_url)                   
+                    starship_name = starship_data['name']                  
+                    starship_names.append(starship_name)
+                starship_dict[character_name] = starship_names             
+    return starship_dict
 
-    pass
 
 #################### EXTRA CREDIT ######################
 
@@ -117,8 +161,19 @@ def calculate_bmi(filename):
     -------
     dict: dictionary with the name as a key and the BMI as the value
     '''
-
-    pass
+    character_data = load_json(filename)
+    bmi_dict = {}
+    for page_data in character_data.values():
+        for character in page_data:
+            if character['height'] == 'unknown' or character['mass'] == 'unknown':
+                continue
+            height_cm = float(character['height'])
+            weight_kg = float(character['mass'].replace(',', ''))
+            if height_cm == 0:
+                continue
+            bmi = weight_kg / ((height_cm / 100) ** 2)
+            bmi_dict[character['name']] = bmi
+    return bmi_dict
 
 class TestHomework6(unittest.TestCase):
     def setUp(self):
